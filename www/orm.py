@@ -32,4 +32,22 @@ async def select(sql,args,size=None):
             else:
                 #返回全部数据
                 rs = await cur.fetchall()
+            logging.info('rows returned: %s' % len(rs))
             return rs
+
+async def excute(sql,ages,aotucommit=True):
+    log(sql)
+    async with __pool.get() as comm:
+        if not aotucommit:
+            await comm.begin()
+        try:
+            async with comm.cursor() as cur:
+                await cur.execute(sql.replace(),ages or ())
+                affected = cur.rowcount
+                if not aotucommit:
+                    await comm.begin()
+                return affected
+        except BaseException as a:
+            if not aotucommit:
+                await comm.rollback()
+                raise
